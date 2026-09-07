@@ -30,6 +30,35 @@ app.get('/api/horarios', async (req, res) => {
     }
 });
 
+// --- RUTA PARA REGISTRAR RECORDATORIOS ---
+app.post('/api/recordatorios', async (req, res) => {
+    const { correo, barrio } = req.body;
+
+    if (!correo) {
+        return res.status(400).json({ success: false, error: 'El correo es obligatorio' });
+    }
+
+    try {
+        const query = `
+            INSERT INTO recordatorios (correo, barrio, activo)
+            VALUES ($1, $2, true)
+            ON CONFLICT (correo) 
+            DO UPDATE SET barrio = EXCLUDED.barrio, activo = true;
+        `;
+        const values = [correo, barrio || 'Samarkanda, Funza'];
+        
+        await pool.query(query, values);
+
+        res.json({ 
+            success: true, 
+            message: '¡Te avisaremos antes de cada recolección!' 
+        });
+    } catch (error) {
+        console.error("Error al guardar recordatorio:", error);
+        res.status(500).json({ success: false, error: "Error en el servidor al guardar el recordatorio" });
+    }
+});
+
 app.get('/', (req, res) => {
     res.json({ message: "¡Servidor de EcoRecolecta conectado con éxito!" });
 });
